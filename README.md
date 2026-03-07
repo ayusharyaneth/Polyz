@@ -74,9 +74,7 @@ pip install -r requirements.txt
 
 ## Configuration
 
-### Environment Variables (.env)
-
-#### 1. Generating an Encryption Key
+#### 1. Generating "ENCRYPTION_KEY"
 You must generate a Fernet encryption key to safely store user private keys in the database
 
 ```bash
