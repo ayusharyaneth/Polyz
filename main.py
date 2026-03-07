@@ -1,7 +1,6 @@
-# main.py
 import asyncio
 from src.config.settings import settings
-from src.database.db import db_pool
+from src.database.db import db_instance  # <-- Changed this to db_instance
 from src.database.migrations import run_migrations
 from src.utils.logger import get_logger
 from src.telegram.bot import start_bot
@@ -15,8 +14,8 @@ logger = get_logger(__name__)
 async def main():
     logger.info("Starting Polymarket Copy Trading Bot System...")
     
-    # Initialize DB
-    await db_pool.initialize()
+    # Initialize MongoDB
+    await db_instance.initialize()  # <-- Changed this to db_instance
     await run_migrations()
     
     # Initialize RPC Manager
