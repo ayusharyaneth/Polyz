@@ -4,14 +4,16 @@ services:
   postgres:
     image: postgres:15-alpine
     environment:
-      POSTGRES_USER: bot_user
-      POSTGRES_PASSWORD: bot_password
-      POSTGRES_DB: polymarket_bot
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: polymarket
+    ports:
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ../src/database/migrations.sql:/docker-entrypoint-initdb.d/migrations.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ../src/database/migrations.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U bot_user -d polymarket_bot"]
+      test: ["CMD-SHELL", "pg_isready -U user -d polymarket"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -31,10 +33,9 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    command: ["python", "-m", "scripts.start_bot"]
-    restart: always
+    command: python src/scripts/start_bot.py
 
-  workers:
+  worker:
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -44,8 +45,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    command: ["python", "-m", "scripts.start_workers"]
-    restart: always
+    command: celery -A src.workers.wallet_tracker worker --loglevel=info
 
 volumes:
-  pgdata:
+  postgres_data:
