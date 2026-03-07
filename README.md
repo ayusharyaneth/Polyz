@@ -74,8 +74,11 @@ pip install -r requirements.txt
 
 ## Configuration
 
-#### 1. Generating "ENCRYPTION_KEY"
-You must generate a Fernet encryption key to safely store user private keys in the database
+#### Generating "ENCRYPTION_KEY"
+You must generate a Fernet encryption key to safely store user private keys in the database.
+
+Type python (or python3) in your terminal and press Enter. This opens the Python interpreter (your prompt will change to >>>).
+Now paste your code:
 
 ```bash
 from cryptography.fernet import Fernet
