@@ -1,0 +1,9 @@
+aiohttp==3.9.3
+asyncio==3.4.3
+python-telegram-bot==20.7
+web3==6.15.1
+asyncpg==0.29.0
+redis==5.0.1
+structlog==24.1.0
+python-dotenv==1.0.1
+cryptography==42.0.5
