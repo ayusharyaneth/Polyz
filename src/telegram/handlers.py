@@ -1,106 +1,31 @@
+# src/telegram/handlers.py
 from telegram import Update
 from telegram.ext import ContextTypes
-from config.settings import BOT_ADMIN_ID
-from services.health_service import HealthService
-from services.config_service import ConfigService
+from src.database.db import db_pool
+from src.services.health_service import HealthMonitor
+from src.telegram.keyboards import main_menu_keyboard
 
-def admin_only(func):
-    async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        if update.effective_user.id != BOT_ADMIN_ID:
-            return
-        return await func(update, context)
-    return wrapper
+async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    await db_pool.execute("INSERT INTO users (id) VALUES ($1) ON CONFLICT DO NOTHING", user_id)
+    await db_pool.execute("INSERT INTO bot_settings (user_id) VALUES ($1) ON CONFLICT DO NOTHING", user_id)
+    await update.message.reply_text("👋 Welcome to Polymarket Copy Trading Bot!", reply_markup=main_menu_keyboard())
 
-@admin_only
-async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await ConfigService.init_user(update.effective_user.id, True)
-    await update.message.reply_text("🟢 System Running\nAdmin authenticated.")
-
-@admin_only
-async def cmd_ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    settings = await ConfigService.get_settings(update.effective_user.id)
-    rpc_latency = await HealthService.ping_rpc(settings.rpc_url if settings else None)
-    db_latency = await HealthService.ping_db()
-    redis_latency = await HealthService.ping_redis()
-    tg_latency = await HealthService.ping_telegram()
-
-    msg = (
-        "🏓 PING RESULTS\n\n"
-        f"📡 RPC Latency: {rpc_latency:.0f} ms\n"
-        f"💾 Database Latency: {db_latency:.0f} ms\n"
-        f"⚡ Redis Latency: {redis_latency:.0f} ms\n"
-        f"🤖 Telegram API: {tg_latency:.0f} ms\n"
-        f"🧠 Worker Response: < 5 ms\n"
-    )
-    await update.message.reply_text(msg)
-
-@admin_only
-async def cmd_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    settings = await ConfigService.get_settings(update.effective_user.id)
-    rpc_l = await HealthService.ping_rpc(settings.rpc_url if settings else None)
-    db_l = await HealthService.ping_db()
+async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    msg = await update.message.reply_text("📡 Measuring latency...")
+    stats = await HealthMonitor.ping_all()
     
-    rpc_status = "🟢 Connected" if rpc_l > 0 else "🔴 Error"
-    db_status = "🟢 Connected" if db_l > 0 else "🔴 Error"
+    text = "📡 *SYSTEM LATENCY*\n\n"
+    for k, v in stats.items():
+        text += f"{k}: {v}\n"
+    
+    status = "Healthy ✅" if all("ms" in v for v in stats.values()) else "Degraded ⚠️"
+    text += f"\nStatus: {status}"
+    
+    await msg.edit_text(text, parse_mode="Markdown")
 
-    msg = (
-        "⚙️ SYSTEM HEALTH\n\n"
-        f"📡 RPC: {rpc_status} ({rpc_l:.0f} ms)\n"
-        f"💾 Database: {db_status} ({db_l:.0f} ms)\n"
-        "⚡ Redis: 🟢 Running\n"
-        "🤖 Telegram API: 🟢 OK\n"
-        "🧠 Workers: 🟢 Active\n"
-        "📊 Wallet Monitor: 🟢 Running\n"
-        "🚀 Trade Executor: 🟢 Ready\n"
-    )
-    await update.message.reply_text(msg)
+async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await ping_cmd(update, context)
 
-@admin_only
-async def cmd_set_rpc(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args:
-        await update.message.reply_text("🔴 Usage: /set_rpc <url>")
-        return
-    await ConfigService.update_setting(update.effective_user.id, 'rpc_url', context.args[0])
-    await update.message.reply_text(f"📡 RPC Updated: {context.args[0]}")
-
-@admin_only
-async def cmd_set_private_key(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.args: return
-    await ConfigService.update_setting(update.effective_user.id, 'private_key', context.args[0])
-    await update.message.reply_text("💾 Private Key Encrypted & Stored.")
-    try: await update.message.delete()
-    except: pass
-
-@admin_only
-async def cmd_set_copy_percentage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.args:
-        await ConfigService.update_setting(update.effective_user.id, 'copy_percentage', float(context.args[0]))
-        await update.message.reply_text(f"📊 Copy Percentage Set: {context.args[0]}%")
-
-@admin_only
-async def cmd_set_max_trade(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.args:
-        await ConfigService.update_setting(update.effective_user.id, 'max_trade_size', float(context.args[0]))
-        await update.message.reply_text(f"⚠️ Max Trade Size Set: ${context.args[0]}")
-
-@admin_only
-async def cmd_set_risk_limit(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.args:
-        await ConfigService.update_setting(update.effective_user.id, 'risk_limit', float(context.args[0]))
-        await update.message.reply_text(f"⚠️ Risk Limit Set: ${context.args[0]}")
-
-@admin_only
-async def cmd_set_slippage(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.args:
-        await ConfigService.update_setting(update.effective_user.id, 'slippage', float(context.args[0]))
-        await update.message.reply_text(f"⚠️ Slippage Set: {context.args[0]}%")
-
-@admin_only
-async def cmd_start_copy(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await ConfigService.update_setting(update.effective_user.id, 'is_active', True)
-    await update.message.reply_text("🟢 Copy Trading Started")
-
-@admin_only
-async def cmd_stop_copy(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await ConfigService.update_setting(update.effective_user.id, 'is_active', False)
-    await update.message.reply_text("🔴 Copy Trading Stopped")
+# Add remaining commands mapping similarly (set_copy_percentage, add_wallet, etc.)
+# Handlers connect to controllers which update DB.
