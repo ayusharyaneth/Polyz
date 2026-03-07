@@ -18,7 +18,7 @@ A production-ready, highly concurrent asynchronous copy trading bot for Polymark
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/ayusharyaneth/polyzgit
+git clone https://github.com/ayusharyaneth/polyz.git
 cd polyz
 ```
 
