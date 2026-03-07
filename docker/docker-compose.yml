@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: bot_user
+      POSTGRES_PASSWORD: bot_password
+      POSTGRES_DB: polymarket_bot
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../src/database/migrations.sql:/docker-entrypoint-initdb.d/migrations.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bot_user -d polymarket_bot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  bot:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file: ../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["python", "-m", "scripts.start_bot"]
+    restart: always
+
+  workers:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file: ../.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["python", "-m", "scripts.start_workers"]
+    restart: always
+
+volumes:
+  pgdata:
