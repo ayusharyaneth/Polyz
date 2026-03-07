@@ -69,3 +69,21 @@ pip install -r requirements.txt
 - Ensure Python 3.11+ is installed  
 - Always validate strategy parameters before running in production  
 - Never expose your `.env` file publicly  
+
+---
+
+
+## Telegram Commands
+
+### Signal Bot Commands
+
+| Command | Description |
+|---------|-------------|
+| `/start` | Initialize bot and database records. |
+| `/ping` | Check latency across RPC, Web3 API, DB, and Redis. |
+| `/health` | Comprehensive system overview. |
+| `/status` | Current copy status. |
+| `/ping` | Check latency across RPC, Web3 API, DB, and Redis. |
+| `/health` | Comprehensive system overview. |
+
+---
