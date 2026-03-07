@@ -4,7 +4,7 @@ from py_clob_client.clob_types import OrderArgs, OrderType
 from src.config.settings import settings
 from src.utils.helpers import decrypt_key
 from src.utils.logger import get_logger
-from src.database.db import db_pool
+from src.database.db import db_instance
 
 logger = get_logger(__name__)
 
@@ -14,11 +14,11 @@ class PolymarketClient:
         self.client = None
 
     async def initialize(self):
-        row = await db_pool.fetchrow("SELECT private_key FROM users WHERE id = $1", self.user_id)
-        if not row or not row['private_key']:
+        user = await db_instance.db.users.find_one({"_id": self.user_id})
+        if not user or not user.get('private_key'):
             raise ValueError("Private key not configured")
             
-        pk = decrypt_key(row['private_key'])
+        pk = decrypt_key(user['private_key'])
         
         self.client = ClobClient(
             host=settings.POLYMARKET_HOST,
