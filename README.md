@@ -69,5 +69,3 @@ pip install -r requirements.txt
 - Ensure Python 3.11+ is installed  
 - Always validate strategy parameters before running in production  
 - Never expose your `.env` file publicly  
-
--
