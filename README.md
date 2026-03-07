@@ -41,8 +41,6 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
----
-
 ### 5. Environment Configuration
 
 Copy the example environment file:
@@ -53,15 +51,11 @@ cp .env.example .env
 
 Edit `.env` and configure:
 
----
-
 ### 6. Running Polyz
 
 ```bash
 python3 main.py
 ```
- 
----
 
 ### 🔄 Updating
 
@@ -70,12 +64,10 @@ git pull origin main
 pip install -r requirements.txt
 ```
 
----
-
 ## ⚠️ Notes
 
 - Ensure Python 3.11+ is installed  
 - Always validate strategy parameters before running in production  
 - Never expose your `.env` file publicly  
 
----
+--
