@@ -18,8 +18,8 @@ A production-ready, highly concurrent asynchronous copy trading bot for Polymark
 ### 1. Clone Repository
 
 ```bash
-git clone https://github.com/ayusharyaneth/dexy.git
-cd dexy
+git clone https://github.com/ayusharyaneth/polyzgit
+cd polyz
 ```
 
 ### 2. Create Virtual Environment
