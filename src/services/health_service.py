@@ -1,8 +1,9 @@
 # src/services/health_service.py
 import time
+import asyncio
 import aiohttp
 import redis.asyncio as redis
-from src.database.db import db_pool
+from src.database.db import db_instance
 from src.services.rpc_manager import rpc_manager
 from src.config.settings import settings
 
@@ -11,13 +12,13 @@ class HealthMonitor:
     async def ping_all():
         stats = {}
         
-        # PG
+        # MongoDB
         start = time.perf_counter()
         try:
-            await db_pool.execute("SELECT 1")
-            stats['PostgreSQL'] = f"{(time.perf_counter() - start) * 1000:.0f} ms"
+            await db_instance.client.admin.command('ping')
+            stats['MongoDB'] = f"{(time.perf_counter() - start) * 1000:.0f} ms"
         except:
-            stats['PostgreSQL'] = "Down"
+            stats['MongoDB'] = "Down"
 
         # Redis
         start = time.perf_counter()
@@ -51,5 +52,4 @@ class HealthMonitor:
 
     async def start_monitoring(self):
         while True:
-            # internal background check logic
             await asyncio.sleep(60)
