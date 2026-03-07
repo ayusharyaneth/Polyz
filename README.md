@@ -83,7 +83,7 @@ pip install -r requirements.txt
 | `/ping` | Check latency across RPC, Web3 API, DB, and Redis. |
 | `/health` | Comprehensive system overview. |
 | `/status` | Current copy status. |
-| `/ping` | Check latency across RPC, Web3 API, DB, and Redis. |
-| `/health` | Comprehensive system overview. |
+| `/add_wallet <address> <label>` | Add a trader to follow. |
+| `/set_copy_percentage <int>` | Set sizing fraction. |
 
 ---
