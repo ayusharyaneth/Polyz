@@ -85,5 +85,7 @@ pip install -r requirements.txt
 | `/status` | Current copy status. |
 | `/add_wallet <address> <label>` | Add a trader to follow. |
 | `/set_copy_percentage <int>` | Set sizing fraction. |
+| `/set_max_trade <float>` | Set max allowed position size. |
+| `/emergency_sell` | Dumps all active Polymarket positions. |
 
 ---
