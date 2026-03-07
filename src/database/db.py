@@ -1,32 +1,24 @@
 # src/database/db.py
-import asyncpg
+from motor.motor_asyncio import AsyncIOMotorClient
 from src.config.settings import settings
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-class DatabasePool:
+class DatabaseInstance:
     def __init__(self):
-        self.pool = None
+        self.client = None
+        self.db = None
 
     async def initialize(self):
         try:
-            self.pool = await asyncpg.create_pool(settings.DATABASE_URL)
-            logger.info("Database pool initialized")
+            self.client = AsyncIOMotorClient(settings.DATABASE_URL)
+            # Defaulting to a database named 'polymarket'
+            self.db = self.client.get_default_database("polymarket")
+            await self.client.admin.command('ping')
+            logger.info("MongoDB cluster connected successfully")
         except Exception as e:
-            logger.error("Failed to initialize database", error=str(e))
+            logger.error("Failed to connect to MongoDB", error=str(e))
             raise
 
-    async def fetch(self, query: str, *args):
-        async with self.pool.acquire() as conn:
-            return await conn.fetch(query, *args)
-            
-    async def fetchrow(self, query: str, *args):
-        async with self.pool.acquire() as conn:
-            return await conn.fetchrow(query, *args)
-
-    async def execute(self, query: str, *args):
-        async with self.pool.acquire() as conn:
-            return await conn.execute(query, *args)
-
-db_pool = DatabasePool()
+db_instance = DatabaseInstance()
