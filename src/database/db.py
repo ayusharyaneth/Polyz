@@ -1,30 +1,32 @@
+# src/database/db.py
 import asyncpg
-from config.settings import DATABASE_URL
-from utils.logger import logger
+from src.config.settings import settings
+from src.utils.logger import get_logger
 
-class Database:
-    _pool = None
+logger = get_logger(__name__)
 
-    @classmethod
-    async def connect(cls):
-        if not cls._pool:
-            cls._pool = await asyncpg.create_pool(DATABASE_URL)
-            logger.info("Database connected")
+class DatabasePool:
+    def __init__(self):
+        self.pool = None
 
-    @classmethod
-    async def get_pool(cls):
-        if not cls._pool:
-            await cls.connect()
-        return cls._pool
+    async def initialize(self):
+        try:
+            self.pool = await asyncpg.create_pool(settings.DATABASE_URL)
+            logger.info("Database pool initialized")
+        except Exception as e:
+            logger.error("Failed to initialize database", error=str(e))
+            raise
 
-    @classmethod
-    async def fetch(cls, query, *args):
-        pool = await cls.get_pool()
-        async with pool.acquire() as conn:
+    async def fetch(self, query: str, *args):
+        async with self.pool.acquire() as conn:
             return await conn.fetch(query, *args)
+            
+    async def fetchrow(self, query: str, *args):
+        async with self.pool.acquire() as conn:
+            return await conn.fetchrow(query, *args)
 
-    @classmethod
-    async def execute(cls, query, *args):
-        pool = await cls.get_pool()
-        async with pool.acquire() as conn:
+    async def execute(self, query: str, *args):
+        async with self.pool.acquire() as conn:
             return await conn.execute(query, *args)
+
+db_pool = DatabasePool()
