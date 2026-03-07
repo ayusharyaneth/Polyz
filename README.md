@@ -77,13 +77,19 @@ pip install -r requirements.txt
 #### Generating "ENCRYPTION_KEY"
 You must generate a Fernet encryption key to safely store user private keys in the database.
 
-Type python (or python3) in your terminal and press Enter. This opens the Python interpreter (your prompt will change to >>>).
-Now paste your code:
+1. Type python (or python3) in your terminal and press Enter. This opens the Python interpreter (your prompt will change to >>>).
+
+
+2. Now paste your code:
 
 ```bash
 from cryptography.fernet import Fernet
 print(Fernet.generate_key().decode())
 ```
+
+3. Copy the output key, then type exit() and press Enter to go back to your normal bash terminal.
+
+
 ---
 
 ## Telegram Commands
