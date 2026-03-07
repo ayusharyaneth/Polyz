@@ -72,6 +72,18 @@ pip install -r requirements.txt
 
 ---
 
+## Configuration
+
+### Environment Variables (.env)
+
+#### 1. Generating an Encryption Key
+You must generate a Fernet encryption key to safely store user private keys in the database
+
+```bash
+from cryptography.fernet import Fernet
+print(Fernet.generate_key().decode())
+```
+---
 
 ## Telegram Commands
 
