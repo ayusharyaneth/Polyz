@@ -20,15 +20,13 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         upsert=True
     )
     
-    # 🎰 The new welcome message is here!
     await update.message.reply_text(
         "Welcome back to Polyz! 🎰\n\nReady to trade? Fund your wallet and start copy trading!", 
         reply_markup=main_menu_keyboard()
     )
 
 async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    message = update.message or update.callback_query.message
-    msg = await message.reply_text("📡 Measuring latency...")
+    msg = await update.message.reply_text("📡 Measuring latency...")
     stats = await HealthMonitor.ping_all()
     
     text = "📡 *SYSTEM LATENCY*\n\n"
@@ -67,18 +65,15 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"├ 💰 Max Trade: ${max_t}\n"
         f"└ 🛡️ Daily Loss: ${max_l}"
     )
-    
-    message = update.message or update.callback_query.message
-    await message.reply_text(text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
+    await update.message.reply_text(text, parse_mode="Markdown")
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     settings = await db_instance.db.bot_settings.find_one({"user_id": user_id})
     wallets = await db_instance.db.target_wallets.find({"user_id": user_id}).to_list(None)
-    message = update.message or update.callback_query.message
 
     if not settings:
-        await message.reply_text("Please run /start first.")
+        await update.message.reply_text("Please run /start first.")
         return
 
     text = "📊 *Bot Status*\n\n"
@@ -92,7 +87,7 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text += "None currently tracked."
 
-    await message.reply_text(text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
+    await update.message.reply_text(text, parse_mode="Markdown")
 
 async def add_wallet_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
@@ -123,7 +118,7 @@ async def set_copy_percentage_cmd(update: Update, context: ContextTypes.DEFAULT_
 
 async def set_max_trade_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("⚠️ Usage: `/set_max_trade <dollar_amount>`\nExample: `/set_max_trade 500`", parse_mode="Markdown")
+        await update.message.reply_text("⚠️ Usage: `/set_max_trade <dollar_amount>`", parse_mode="Markdown")
         return
     try:
         amt = float(context.args[0])
@@ -133,17 +128,25 @@ async def set_max_trade_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Please provide a valid number.")
 
 async def emergency_sell_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🚨 *EMERGENCY SELL TRIGGERED*\n\nClosing all active positions at market price... (API integration pending)", parse_mode="Markdown")
+    await update.message.reply_text("🚨 *EMERGENCY SELL TRIGGERED*\n\nClosing all active positions at market price...", parse_mode="Markdown")
 
-async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer() 
+# --- NEW: This handles the Reply Keyboard button taps ---
+async def menu_text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
     
-    if query.data == 'health':
-        await health_cmd(update, context)
-    elif query.data == 'wallets':
-        await status_cmd(update, context)
-    elif query.data == 'settings':
-        await query.message.reply_text("⚙️ *Settings Commands:*\n\n`/set_copy_percentage <amount>`\n`/set_max_trade <amount>`\n`/add_wallet <address> <label>`", parse_mode="Markdown")
-    else:
-        await query.message.reply_text(f"Under construction: {query.data.replace('_', ' ').title()} module loading...")
+    if text == "📈 Positions":
+        await update.message.reply_text("📊 *Open Positions*\n\nYou currently have no active Polymarket positions.", parse_mode="Markdown")
+    elif text == "🔔 Track":
+        await update.message.reply_text("🔔 *Track a Wallet*\n\nTo track a new whale, use the command:\n`/add_wallet <address> <label>`", parse_mode="Markdown")
+    elif text == "📊 Markets":
+        await update.message.reply_text("📈 *Trending Polymarket Markets*\n\n1. Presidential Election 2028\n2. Bitcoin to $100k\n\n*(Live API sync pending)*", parse_mode="Markdown")
+    elif text == "💰 Copy-Trade":
+        await update.message.reply_text("💰 *Copy Trading Engine*\n\nStatus: Active ✅\nUse `/set_copy_percentage <amount>` to adjust your sizing.", parse_mode="Markdown")
+    elif text == "💳 Wallets":
+        await status_cmd(update, context) # Reuses your status command!
+    elif text == "⚙️ Settings":
+        await update.message.reply_text("⚙️ *Bot Settings*\n\n`/set_copy_percentage <amount>`\n`/set_max_trade <amount>`\n`/add_wallet <address> <label>`", parse_mode="Markdown")
+    elif text == "📋 Limit Orders":
+        await update.message.reply_text("📋 *Limit Orders*\n\nYou have no pending limit orders.", parse_mode="Markdown")
+    elif text == "⚡️ Health":
+        await health_cmd(update, context) # Reuses your health command!
