@@ -8,3 +8,4 @@ structlog==24.1.0
 python-dotenv==1.0.1
 py-clob-client==0.34.6
 cryptography==42.0.5
+rich==13.7.0
