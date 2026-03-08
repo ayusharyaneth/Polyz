@@ -1,7 +1,10 @@
 # src/telegram/bot.py
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 from src.config.settings import settings
-from src.telegram.handlers import start_cmd, ping_cmd, health_cmd
+from src.telegram.handlers import (
+    start_cmd, ping_cmd, health_cmd, status_cmd, 
+    add_wallet_cmd, set_copy_percentage_cmd, button_callback
+)
 
 _app = None
 
@@ -9,9 +12,16 @@ async def start_bot():
     global _app
     _app = ApplicationBuilder().token(settings.BOT_TOKEN).build()
     
+    # Register Commands
     _app.add_handler(CommandHandler("start", start_cmd))
     _app.add_handler(CommandHandler("ping", ping_cmd))
     _app.add_handler(CommandHandler("health", health_cmd))
+    _app.add_handler(CommandHandler("status", status_cmd))
+    _app.add_handler(CommandHandler("add_wallet", add_wallet_cmd))
+    _app.add_handler(CommandHandler("set_copy_percentage", set_copy_percentage_cmd))
+    
+    # Register Button Clicks
+    _app.add_handler(CallbackQueryHandler(button_callback))
     
     await _app.initialize()
     await _app.start()
