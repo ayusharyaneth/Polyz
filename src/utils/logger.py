@@ -4,6 +4,10 @@ import sys
 import structlog
 
 def get_logger(name: str):
+    # 🚨 SECURITY FIX: Mute the underlying HTTP libraries so they don't leak your Bot Token
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+
     logging.basicConfig(
         format="%(message)s",
         stream=sys.stdout,
