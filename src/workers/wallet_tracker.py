@@ -20,6 +20,12 @@ class WalletTracker:
         abi = [{"anonymous":False,"inputs":[{"indexed":True,"name":"operator","type":"address"},{"indexed":True,"name":"from","type":"address"},{"indexed":True,"name":"to","type":"address"},{"indexed":False,"name":"id","type":"uint256"},{"indexed":False,"name":"value","type":"uint256"}],"name":"TransferSingle","type":"event"}]
         contract = w3.eth.contract(address=w3.to_checksum_address(settings.CTF_CONTRACT), abi=abi)
         
+        # Start tracking from a few blocks in the past to ensure node stability
+        try:
+            last_checked_block = await w3.eth.get_block_number() - 5
+        except Exception:
+            last_checked_block = 0 # Will update on first successful loop
+        
         while True:
             try:
                 wallets = await db_instance.db.target_wallets.find({}, {"address": 1}).to_list(None)
@@ -30,11 +36,17 @@ class WalletTracker:
                     continue
 
                 latest_block = await w3.eth.get_block_number()
-                
-                # The node will happily accept this because both are integers
+                safe_latest_block = latest_block - 2 # Stay 2 blocks behind to prevent -32000 errors
+
+                # If we've already checked this block, wait for the next one
+                if last_checked_block >= safe_latest_block:
+                    await asyncio.sleep(2)
+                    continue
+
+                # Fetch logs safely between the last check and the current safe block
                 events = await contract.events.TransferSingle.get_logs(
-                    from_block=latest_block - 5, 
-                    to_block=latest_block
+                    from_block=last_checked_block + 1, 
+                    to_block=safe_latest_block
                 )
                 
                 for event in events:
@@ -46,14 +58,20 @@ class WalletTracker:
                         await self.publish_trade(to_addr, str(args['id']), args['value'], True)
                     elif from_addr in target_addresses:
                         await self.publish_trade(from_addr, str(args['id']), args['value'], False)
-                        
-                await asyncio.sleep(5)
+                
+                # Update our memory
+                last_checked_block = safe_latest_block
+                await asyncio.sleep(3)
                 
             except Exception as e:
-                logger.error("Wallet tracker error", error=str(e))
+                # Mute the specific -32000 error if it somehow slips through during a node reboot
+                if "-32000" not in str(e):
+                    logger.error("Wallet tracker error", error=str(e))
+                
+                # Gently grab a fresh connection and try again
+                await asyncio.sleep(5)
                 w3 = rpc_manager.get_web3()
                 contract = w3.eth.contract(address=w3.to_checksum_address(settings.CTF_CONTRACT), abi=abi)
-                await asyncio.sleep(5)
 
     async def publish_trade(self, address: str, token_id: str, amount: int, is_buy: bool):
         payload = {"address": address, "token_id": token_id, "amount": amount, "is_buy": is_buy}
