@@ -19,10 +19,10 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         {"$setOnInsert": {"user_id": user_id, "copy_percentage": 100.0, "max_trade_size": 1000.0, "max_daily_loss": 500.0}},
         upsert=True
     )
+    # This now sends the new beautiful grid keyboard
     await update.message.reply_text("👋 Welcome to Polymarket Copy Trading Bot!", reply_markup=main_menu_keyboard())
 
 async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Safely handle both typed commands and button clicks
     message = update.message or update.callback_query.message
     msg = await message.reply_text("📡 Measuring latency...")
     stats = await HealthMonitor.ping_all()
@@ -40,12 +40,10 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     db = db_instance.db
     
-    # Fetch configurations from MongoDB
     user = await db.users.find_one({"_id": user_id})
     settings = await db.bot_settings.find_one({"user_id": user_id})
     wallet_count = await db.target_wallets.count_documents({"user_id": user_id})
     
-    # Minimal Status Flags
     pk_status = "✅ Active" if user and user.get("private_key") else "❌ Missing"
     rpc_status = "✅ Custom" if settings and settings.get("rpc_url") else "⚠️ Public"
     wallet_status = f"✅ {wallet_count}" if wallet_count > 0 else "❌ 0"
@@ -54,7 +52,6 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     max_t = settings.get('max_trade_size', 1000) if settings else 1000
     max_l = settings.get('max_daily_loss', 500) if settings else 500
 
-    # Sleek Terminal-Style Dashboard
     text = (
         "⚡️ *System Health*\n\n"
         "*Core*\n"
@@ -68,13 +65,13 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     message = update.message or update.callback_query.message
-    await message.reply_text(text, parse_mode="Markdown")
+    # Keep the menu attached to the health check!
+    await message.reply_text(text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     settings = await db_instance.db.bot_settings.find_one({"user_id": user_id})
     wallets = await db_instance.db.target_wallets.find({"user_id": user_id}).to_list(None)
-
     message = update.message or update.callback_query.message
 
     if not settings:
@@ -92,7 +89,7 @@ async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text += "None currently tracked."
 
-    await message.reply_text(text, parse_mode="Markdown")
+    await message.reply_text(text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
 
 async def add_wallet_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if len(context.args) < 2:
@@ -112,9 +109,8 @@ async def add_wallet_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def set_copy_percentage_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
-        await update.message.reply_text("⚠️ Usage: `/set_copy_percentage <number>`\nExample: `/set_copy_percentage 50`", parse_mode="Markdown")
+        await update.message.reply_text("⚠️ Usage: `/set_copy_percentage <number>`", parse_mode="Markdown")
         return
-        
     try:
         pct = float(context.args[0])
         await db_instance.db.bot_settings.update_one({"user_id": update.effective_user.id}, {"$set": {"copy_percentage": pct}})
@@ -122,18 +118,36 @@ async def set_copy_percentage_cmd(update: Update, context: ContextTypes.DEFAULT_
     except ValueError:
         await update.message.reply_text("⚠️ Please provide a valid number.")
 
-# Handles inline keyboard button clicks
+# --- NEW COMMANDS TO FIX YOUR SCREENSHOT ---
+
+async def set_max_trade_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("⚠️ Usage: `/set_max_trade <dollar_amount>`\nExample: `/set_max_trade 500`", parse_mode="Markdown")
+        return
+    try:
+        amt = float(context.args[0])
+        await db_instance.db.bot_settings.update_one({"user_id": update.effective_user.id}, {"$set": {"max_trade_size": amt}})
+        await update.message.reply_text(f"✅ Max trade size set to ${amt}")
+    except ValueError:
+        await update.message.reply_text("⚠️ Please provide a valid number.")
+
+async def emergency_sell_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # We will wire this up to the Polymarket execution engine later!
+    await update.message.reply_text("🚨 *EMERGENCY SELL TRIGGERED*\n\nClosing all active positions at market price... (API integration pending)", parse_mode="Markdown")
+
+# --- UI BUTTON HANDLER ---
+
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    await query.answer() # Stops the loading circle on the button
+    await query.answer() 
     
-    if query.data == 'status':
+    # Map the new grid buttons to their actions
+    if query.data == 'health':
+        await health_cmd(update, context)
+    elif query.data == 'wallets':
         await status_cmd(update, context)
-    elif query.data == 'ping':
-        await ping_cmd(update, context)
     elif query.data == 'settings':
-        await query.message.reply_text("⚙️ *Settings Commands:*\n\n`/set_copy_percentage <amount>`\n`/set_max_trade <amount>`\n`/add_wallet <address> <label>`\n`/health`", parse_mode="Markdown")
-    elif query.data == 'stop':
-        await query.message.reply_text("🛑 Copy trading stopped. (Feature pending execution link)")
-    elif query.data == 'emergency_sell':
-        await query.message.reply_text("🆘 Emergency Sell triggered! (Feature pending exchange link)")
+        await query.message.reply_text("⚙️ *Settings Commands:*\n\n`/set_copy_percentage <amount>`\n`/set_max_trade <amount>`\n`/add_wallet <address> <label>`", parse_mode="Markdown")
+    else:
+        # Placeholder for the new buttons we haven't built out yet
+        await query.message.reply_text(f"Under construction: {query.data.replace('_', ' ').title()} module loading...")
