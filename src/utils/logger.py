@@ -3,6 +3,9 @@ import logging
 import sys
 import structlog
 
+import warnings
+warnings.filterwarnings("ignore", category=ResourceWarning)
+
 def get_logger(name: str):
     # 🚨 SECURITY FIX: Mute the underlying HTTP libraries so they don't leak your Bot Token
     logging.getLogger("httpx").setLevel(logging.WARNING)
