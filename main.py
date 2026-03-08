@@ -1,6 +1,6 @@
 import asyncio
 from src.config.settings import settings
-from src.database.db import db_instance  # <-- Changed this to db_instance
+from src.database.db import db_instance
 from src.database.migrations import run_migrations
 from src.utils.logger import get_logger
 from src.telegram.bot import start_bot
@@ -15,7 +15,7 @@ async def main():
     logger.info("Starting Polymarket Copy Trading Bot System...")
     
     # Initialize MongoDB
-    await db_instance.initialize()  # <-- Changed this to db_instance
+    await db_instance.initialize()
     await run_migrations()
     
     # Initialize RPC Manager
@@ -32,11 +32,14 @@ async def main():
     trade_listener = TradeListener()
     asyncio.create_task(trade_listener.start())
 
-    # Start Telegram Bot (blocks)
+    # Start Telegram Bot in the background
     await start_bot()
+    
+    # 🚨 THE FIX: Keep the main thread alive forever!
+    await asyncio.Event().wait()
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("System shutting down...")
+        print("\n[info     ] System shutting down...")
