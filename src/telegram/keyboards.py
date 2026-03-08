@@ -1,23 +1,13 @@
 # src/telegram/keyboards.py
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, KeyboardButton
 
 def main_menu_keyboard():
+    # 2-column grid exactly like your screenshot, but swapping Close for Health
     keyboard = [
-        [
-            InlineKeyboardButton("📉 Positions", callback_data="positions"),
-            InlineKeyboardButton("🔔 Track", callback_data="track")
-        ],
-        [
-            InlineKeyboardButton("📊 Markets", callback_data="markets"),
-            InlineKeyboardButton("💰 Copy-Trade", callback_data="copy_trade")
-        ],
-        [
-            InlineKeyboardButton("💳 Wallets", callback_data="wallets"),
-            InlineKeyboardButton("⚙️ Settings", callback_data="settings")
-        ],
-        [
-            InlineKeyboardButton("📋 Limit Orders", callback_data="limit_orders"),
-            InlineKeyboardButton("⚡️ Health", callback_data="health") # Replaced Close with Health
-        ]
+        [KeyboardButton("📈 Positions"), KeyboardButton("🔔 Track")],
+        [KeyboardButton("📊 Markets"), KeyboardButton("💰 Copy-Trade")],
+        [KeyboardButton("💳 Wallets"), KeyboardButton("⚙️ Settings")],
+        [KeyboardButton("📋 Limit Orders"), KeyboardButton("⚡️ Health")]
     ]
-    return InlineKeyboardMarkup(keyboard)
+    # resize_keyboard=True makes it perfectly hug the bottom of the phone screen
+    return ReplyKeyboardMarkup(keyboard, resize_keyboard=True, is_persistent=True)
