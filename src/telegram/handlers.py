@@ -19,8 +19,12 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         {"$setOnInsert": {"user_id": user_id, "copy_percentage": 100.0, "max_trade_size": 1000.0, "max_daily_loss": 500.0}},
         upsert=True
     )
-    # This now sends the new beautiful grid keyboard
-    await update.message.reply_text("👋 Welcome to Polymarket Copy Trading Bot!", reply_markup=main_menu_keyboard())
+    
+    # 🎰 The new welcome message is here!
+    await update.message.reply_text(
+        "Welcome back to Polyz! 🎰\n\nReady to trade? Fund your wallet and start copy trading!", 
+        reply_markup=main_menu_keyboard()
+    )
 
 async def ping_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     message = update.message or update.callback_query.message
@@ -65,7 +69,6 @@ async def health_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     
     message = update.message or update.callback_query.message
-    # Keep the menu attached to the health check!
     await message.reply_text(text, parse_mode="Markdown", reply_markup=main_menu_keyboard())
 
 async def status_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -118,8 +121,6 @@ async def set_copy_percentage_cmd(update: Update, context: ContextTypes.DEFAULT_
     except ValueError:
         await update.message.reply_text("⚠️ Please provide a valid number.")
 
-# --- NEW COMMANDS TO FIX YOUR SCREENSHOT ---
-
 async def set_max_trade_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text("⚠️ Usage: `/set_max_trade <dollar_amount>`\nExample: `/set_max_trade 500`", parse_mode="Markdown")
@@ -132,16 +133,12 @@ async def set_max_trade_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("⚠️ Please provide a valid number.")
 
 async def emergency_sell_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # We will wire this up to the Polymarket execution engine later!
     await update.message.reply_text("🚨 *EMERGENCY SELL TRIGGERED*\n\nClosing all active positions at market price... (API integration pending)", parse_mode="Markdown")
-
-# --- UI BUTTON HANDLER ---
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer() 
     
-    # Map the new grid buttons to their actions
     if query.data == 'health':
         await health_cmd(update, context)
     elif query.data == 'wallets':
@@ -149,5 +146,4 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'settings':
         await query.message.reply_text("⚙️ *Settings Commands:*\n\n`/set_copy_percentage <amount>`\n`/set_max_trade <amount>`\n`/add_wallet <address> <label>`", parse_mode="Markdown")
     else:
-        # Placeholder for the new buttons we haven't built out yet
         await query.message.reply_text(f"Under construction: {query.data.replace('_', ' ').title()} module loading...")
