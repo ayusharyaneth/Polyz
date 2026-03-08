@@ -1,33 +1,29 @@
 # src/utils/logger.py
 import logging
+import sys
 import structlog
-from rich.logging import RichHandler
 
 def get_logger(name: str):
-    # Set up Rich to hijack standard Python logging
+    # Route standard Python logs (from web3, etc.) through our custom formatter
     logging.basicConfig(
-        level=logging.INFO,
         format="%(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        handlers=[
-            RichHandler(
-                rich_tracebacks=True,       # Draws beautiful UI boxes around errors
-                tracebacks_show_locals=True,# Shows variable states when an error happens
-                show_path=False,            # Hides file paths to keep the console wide and clean
-                markup=True
-            )
-        ]
+        stream=sys.stdout,
+        level=logging.INFO,
     )
 
     structlog.configure(
         processors=[
+            # Add log level (INFO, ERROR)
             structlog.stdlib.add_log_level,
+            # Add the name of the file generating the log
             structlog.stdlib.add_logger_name,
+            # Keep the timestamp short and readable
             structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S", utc=False),
-            # structlog's dev renderer plays incredibly nicely with Rich
+            # The magic formatter
             structlog.dev.ConsoleRenderer(
                 colors=True,
-                force_colors=True,
+                pad_event=50,  # <-- This aligns all your variables into a neat right column
+                sort_keys=True # Keeps variable output order predictable
             )
         ],
         context_class=dict,
