@@ -1,15 +1,16 @@
 # src/utils/logger.py
 import logging
 import sys
+import warnings
 import structlog
 
-import warnings
+# Globally mute unclosed session memory warnings
 warnings.filterwarnings("ignore", category=ResourceWarning)
 
 def get_logger(name: str):
-    # 🚨 SECURITY FIX: Mute the underlying HTTP libraries so they don't leak your Bot Token
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    # Gag all the noisy 3rd-party libraries so they only report fatal crashes
+    for noisy_module in ["httpx", "httpcore", "aiohttp", "web3", "urllib3", "asyncio"]:
+        logging.getLogger(noisy_module).setLevel(logging.CRITICAL)
 
     logging.basicConfig(
         format="%(message)s",
