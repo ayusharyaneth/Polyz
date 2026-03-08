@@ -3,7 +3,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 from src.config.settings import settings
 from src.telegram.handlers import (
     start_cmd, ping_cmd, health_cmd, status_cmd, 
-    add_wallet_cmd, set_copy_percentage_cmd, button_callback
+    add_wallet_cmd, set_copy_percentage_cmd, 
+    set_max_trade_cmd, emergency_sell_cmd, button_callback
 )
 
 _app = None
@@ -19,6 +20,10 @@ async def start_bot():
     _app.add_handler(CommandHandler("status", status_cmd))
     _app.add_handler(CommandHandler("add_wallet", add_wallet_cmd))
     _app.add_handler(CommandHandler("set_copy_percentage", set_copy_percentage_cmd))
+    
+    # Fix for your screenshot: Register the missing commands!
+    _app.add_handler(CommandHandler("set_max_trade", set_max_trade_cmd))
+    _app.add_handler(CommandHandler("emergency_sell", emergency_sell_cmd))
     
     # Register Button Clicks
     _app.add_handler(CallbackQueryHandler(button_callback))
