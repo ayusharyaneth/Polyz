@@ -1,10 +1,10 @@
 # src/telegram/bot.py
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from src.config.settings import settings
 from src.telegram.handlers import (
     start_cmd, ping_cmd, health_cmd, status_cmd, 
     add_wallet_cmd, set_copy_percentage_cmd, 
-    set_max_trade_cmd, emergency_sell_cmd, menu_text_handler
+    set_max_trade_cmd, emergency_sell_cmd, button_callback, menu_text_handler
 )
 
 _app = None
@@ -23,7 +23,10 @@ async def start_bot():
     _app.add_handler(CommandHandler("set_max_trade", set_max_trade_cmd))
     _app.add_handler(CommandHandler("emergency_sell", emergency_sell_cmd))
     
-    # NEW: Catch all regular text messages (which is what the Reply Keyboard sends)
+    # Register Inline Button Clicks
+    _app.add_handler(CallbackQueryHandler(button_callback))
+    
+    # Catch all regular text messages (for the Reply Keyboard dashboard)
     _app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, menu_text_handler))
     
     await _app.initialize()
