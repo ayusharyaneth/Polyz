@@ -10,45 +10,51 @@ logger = get_logger(__name__)
 
 class RPCManager:
     def __init__(self):
-        self.urls = settings.DEFAULT_RPC_URLS
+        self.rpcs = settings.DEFAULT_RPC_URLS
         self.active_rpc = None
         self.latencies = {}
+        self._w3 = None
 
     async def initialize(self):
-        await self.refresh_rpcs()
-        asyncio.create_task(self._monitor_loop())
+        await self._update_best_rpc()
+        asyncio.create_task(self.monitor_rpcs())
 
-    async def _monitor_loop(self):
+    async def _update_best_rpc(self):
+        fastest_rpc = None
+        best_ping = float('inf')
+
+        # Safely ping all RPCs using a properly closed session
+        async with aiohttp.ClientSession() as session:
+            for rpc in self.rpcs:
+                start = time.perf_counter()
+                try:
+                    payload = {"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}
+                    async with session.post(rpc, json=payload, timeout=3) as resp:
+                        if resp.status == 200:
+                            ping = (time.perf_counter() - start) * 1000
+                            self.latencies[rpc] = ping
+                            if ping < best_ping:
+                                best_ping = ping
+                                fastest_rpc = rpc
+                except Exception:
+                    self.latencies[rpc] = float('inf')
+
+        # FIX: ONLY create a new Web3 instance if the fastest RPC actually changed!
+        if fastest_rpc and fastest_rpc != self.active_rpc:
+            self.active_rpc = fastest_rpc
+            self._w3 = AsyncWeb3(AsyncHTTPProvider(self.active_rpc))
+            logger.info(f"Switched RPC: {self.active_rpc} ({best_ping:.0f}ms)")
+        elif not fastest_rpc and not self.active_rpc:
+            logger.error("CRITICAL: All RPCs are down!")
+
+    async def monitor_rpcs(self):
         while True:
-            await asyncio.sleep(10)
-            await self.refresh_rpcs()
+            await asyncio.sleep(60) # Check latencies once a minute
+            await self._update_best_rpc()
 
-    async def ping_rpc(self, url: str) -> float:
-        try:
-            w3 = AsyncWeb3(AsyncHTTPProvider(url))
-            start = time.perf_counter()
-            await w3.eth.get_block_number()
-            end = time.perf_counter()
-            return (end - start) * 1000
-        except Exception:
-            return float('inf')
-
-    async def refresh_rpcs(self):
-        tasks = [self.ping_rpc(url) for url in self.urls]
-        results = await asyncio.gather(*tasks)
-        
-        for url, latency in zip(self.urls, results):
-            self.latencies[url] = latency
-
-        healthy_rpcs = {k: v for k, v in self.latencies.items() if v < float('inf')}
-        if healthy_rpcs:
-            self.active_rpc = min(healthy_rpcs, key=healthy_rpcs.get)
-        else:
-            logger.error("🚨 CRITICAL: All RPCs are down!")
-            
-    def get_web3(self) -> AsyncWeb3:
-        if not self.active_rpc:
-            raise ConnectionError("No healthy RPC available")
-        return AsyncWeb3(AsyncHTTPProvider(self.active_rpc))
+    def get_web3(self):
+        if not self._w3:
+            self._w3 = AsyncWeb3(AsyncHTTPProvider(self.rpcs[0]))
+        return self._w3
 
 rpc_manager = RPCManager()
