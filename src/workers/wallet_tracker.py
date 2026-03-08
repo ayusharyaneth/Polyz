@@ -16,14 +16,12 @@ class WalletTracker:
     async def start(self):
         logger.info("Wallet tracker started")
         
-        # 1. FIX THE LEAK: Initialize Web3 and Contract outside the infinite loop!
         w3 = rpc_manager.get_web3()
         abi = [{"anonymous":False,"inputs":[{"indexed":True,"name":"operator","type":"address"},{"indexed":True,"name":"from","type":"address"},{"indexed":True,"name":"to","type":"address"},{"indexed":False,"name":"id","type":"uint256"},{"indexed":False,"name":"value","type":"uint256"}],"name":"TransferSingle","type":"event"}]
         contract = w3.eth.contract(address=w3.to_checksum_address(settings.CTF_CONTRACT), abi=abi)
         
         while True:
             try:
-                # Fetch target wallets from MongoDB
                 wallets = await db_instance.db.target_wallets.find({}, {"address": 1}).to_list(None)
                 target_addresses = [w3.to_checksum_address(w['address']) for w in wallets if 'address' in w]
 
@@ -33,8 +31,11 @@ class WalletTracker:
 
                 latest_block = await w3.eth.get_block_number()
                 
-                # 2. FIX THE CRASH: Use from_block and to_block for Web3 v6 compatibility
-                events = await contract.events.TransferSingle.get_logs(from_block=latest_block-5, to_block='latest')
+                # The node will happily accept this because both are integers
+                events = await contract.events.TransferSingle.get_logs(
+                    from_block=latest_block - 5, 
+                    to_block=latest_block
+                )
                 
                 for event in events:
                     args = event['args']
@@ -50,7 +51,6 @@ class WalletTracker:
                 
             except Exception as e:
                 logger.error("Wallet tracker error", error=str(e))
-                # If the RPC crashes, gently attempt to grab a fresh connection
                 w3 = rpc_manager.get_web3()
                 contract = w3.eth.contract(address=w3.to_checksum_address(settings.CTF_CONTRACT), abi=abi)
                 await asyncio.sleep(5)
